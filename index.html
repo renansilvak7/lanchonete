@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Lanchonete</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topo">
+
+    <div class="cabecalho">
+        <div>
+            <span class="status">● ABERTO AGORA</span>
+            <h1>MINHA LANCHONETE</h1>
+
+            <div class="info">
+                <span>⭐ 4,8</span>
+                <span>🕐 35–50 min</span>
+            </div>
+        </div>
+
+        <button class="botao-3d">3D</button>
+    </div>
+
+    <div class="endereco">
+        📍 Rua da Lanchonete, 123
+        <button>🗺️ Ver localização</button>
+    </div>
+
+    <div class="pesquisa">
+        🔍
+        <input
+            type="text"
+            id="campoPesquisa"
+            placeholder="Pesquisar no cardápio..."
+            autocomplete="off"
+        >
+    </div>
+
+    <div id="historicoPesquisa" class="historico"></div>
+
+</header>
+
+
+<nav class="categorias">
+
+    <button class="categoria ativa" data-categoria="todos">
+        Todos
+    </button>
+
+    <button class="categoria" data-categoria="lanches">
+        🍔 Lanches
+    </button>
+
+    <button class="categoria" data-categoria="porcoes">
+        🍟 Porções
+    </button>
+
+    <button class="categoria" data-categoria="bebidas">
+        🥤 Bebidas
+    </button>
+
+    <button class="categoria" data-categoria="sobremesas">
+        🍰 Sobremesas
+    </button>
+
+    <button class="categoria" data-categoria="promocoes">
+        🔥 Promoções
+    </button>
+
+</nav>
+
+
+<main>
+
+
+<!-- ================= LANCHES ================= -->
+
+<section class="categoria-secao">
+
+    <div class="titulo-secao">
+        <div>
+            <span>OS MAIS PEDIDOS</span>
+            <h2>🍔 Lanches</h2>
+        </div>
+
+        <button class="ver-todos">Ver todos →</button>
+    </div>
+
+
+    <div class="carrossel">
+
+
+        <article
+            class="produto"
+            data-categoria="lanches"
+            data-nome="X-Bacon"
+            data-palavras="bacon queijo hamburguer carne lanche"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍔</div>
+                <span class="selo">🔥 MAIS PEDIDO</span>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>X-Bacon</h3>
+
+                <p>
+                    Hambúrguer artesanal, bacon crocante,
+                    queijo, salada e molho especial.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,9</strong>
+                    <span>(128)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 18,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <article
+            class="produto"
+            data-categoria="lanches"
+            data-nome="X-Salada"
+            data-palavras="salada queijo hamburguer carne lanche"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍔</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>X-Salada</h3>
+
+                <p>
+                    Hambúrguer artesanal, queijo,
+                    alface, tomate e molho especial.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,7</strong>
+                    <span>(96)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 16,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <article
+            class="produto"
+            data-categoria="lanches"
+            data-nome="X-Tudo"
+            data-palavras="tudo hamburguer bacon queijo ovo presunto lanche"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍔</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>X-Tudo</h3>
+
+                <p>
+                    Carne, bacon, queijo, ovo,
+                    presunto, salada e molho.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,8</strong>
+                    <span>(174)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 22,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <article
+            class="produto"
+            data-categoria="lanches"
+            data-nome="Duplo Bacon"
+            data-palavras="duplo bacon hamburguer carne queijo lanche"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍔</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>Duplo Bacon</h3>
+
+                <p>
+                    Dois hambúrgueres artesanais,
+                    bacon crocante e queijo.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>5,0</strong>
+                    <span>(82)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 24,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+    </div>
+
+</section>
+
+
+
+<!-- ================= PORÇÕES ================= -->
+
+<section class="categoria-secao">
+
+    <div class="titulo-secao">
+        <div>
+            <span>PARA ACOMPANHAR</span>
+            <h2>🍟 Porções</h2>
+        </div>
+
+        <button class="ver-todos">Ver todos →</button>
+    </div>
+
+
+    <div class="carrossel">
+
+        <article
+            class="produto"
+            data-categoria="porcoes"
+            data-nome="Batata Frita"
+            data-palavras="batata frita porcao acompanhamento"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍟</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>Batata Frita</h3>
+
+                <p>
+                    Batatas crocantes, douradas e
+                    temperadas na medida certa.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,9</strong>
+                    <span>(73)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 14,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <article
+            class="produto"
+            data-categoria="porcoes"
+            data-nome="Batata com Cheddar"
+            data-palavras="batata cheddar queijo porcao"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍟</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>Batata com Cheddar</h3>
+
+                <p>
+                    Batata crocante coberta com
+                    cheddar cremoso.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,8</strong>
+                    <span>(61)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 19,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <article
+            class="produto"
+            data-categoria="porcoes"
+            data-nome="Frango Crocante"
+            data-palavras="frango crocante porcao frango"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🍗</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>Frango Crocante</h3>
+
+                <p>
+                    Tiras de frango crocantes
+                    acompanhadas de molho.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,7</strong>
+                    <span>(45)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 21,90</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+    </div>
+
+</section>
+
+
+
+<!-- ================= BEBIDAS ================= -->
+
+<section class="categoria-secao">
+
+    <div class="titulo-secao">
+        <div>
+            <span>PARA REFRESCAR</span>
+            <h2>🥤 Bebidas</h2>
+        </div>
+
+        <button class="ver-todos">Ver todos →</button>
+    </div>
+
+
+    <div class="carrossel">
+
+        <article
+            class="produto"
+            data-categoria="bebidas"
+            data-nome="Coca-Cola"
+            data-palavras="coca cola refrigerante bebida"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🥤</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>Coca-Cola</h3>
+
+                <p>
+                    Refrigerante gelado para
+                    acompanhar seu lanche.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,8</strong>
+                    <span>(39)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 6,00</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+
+
+        <article
+            class="produto"
+            data-categoria="bebidas"
+            data-nome="Guaraná"
+            data-palavras="guarana refrigerante bebida"
+        >
+
+            <div class="imagem-produto modo3d">
+                <div class="produto-emoji">🥤</div>
+            </div>
+
+            <div class="produto-info">
+
+                <h3>Guaraná</h3>
+
+                <p>
+                    Refrigerante de guaraná
+                    servido bem gelado.
+                </p>
+
+                <div class="avaliacao">
+                    ⭐ <strong>4,7</strong>
+                    <span>(32)</span>
+                </div>
+
+                <div class="rodape-produto">
+                    <strong>R$ 6,00</strong>
+                    <button class="adicionar">+</button>
+                </div>
+
+            </div>
+
+        </article>
+
+    </div>
+
+</section>
+
+
+
+<!-- ================= PROMOÇÃO ================= -->
+
+<section class="categoria-secao promocao-secao">
+
+    <div class="titulo-secao">
+        <div>
+            <span>OFERTA ESPECIAL</span>
+            <h2>🔥 Promoções</h2>
+        </div>
+    </div>
+
+
+    <div class="promocao">
+
+        <div class="imagem-promocao modo3d">
+            <div class="promocao-emoji">🍔🍔</div>
+        </div>
+
+        <div class="promocao-info">
+
+            <span class="tag">COMPRE 1, LEVE 2</span>
+
+            <h3>2 X-Bacons</h3>
+
+            <p>
+                Dois X-Bacons completos por um
+                preço especial.
+            </p>
+
+            <span class="preco-antigo">R$ 37,80</span>
+
+            <strong>R$ 29,90</strong>
+
+            <button class="botao-pedido">
+                Adicionar promoção
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+</main>
+
+
+<!-- ================= CARRINHO ================= -->
+
+<div class="carrinho">
+
+    <div>
+        <span>🛒</span>
+        <div>
+            <small>Seu pedido</small>
+            <strong id="quantidadeCarrinho">0 itens</strong>
+        </div>
+    </div>
+
+    <strong id="totalCarrinho">R$ 0,00</strong>
+
+    <button>Ver pedido</button>
+
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>

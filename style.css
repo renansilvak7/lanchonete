@@ -1,0 +1,578 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #070707;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    padding-bottom: 110px;
+}
+
+/* ================= TOPO ================= */
+
+.topo {
+    padding: 25px 18px 18px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.status {
+    color: #8cff8c;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.topo h1 {
+    font-size: 28px;
+    margin-top: 7px;
+    letter-spacing: 1px;
+}
+
+.info {
+    display: flex;
+    gap: 15px;
+    color: #bbb;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.botao-3d {
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ================= ENDEREÇO ================= */
+
+.endereco {
+    color: #aaa;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 17px;
+}
+
+.endereco button {
+    background: #161616;
+    border: 1px solid #303030;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* ================= PESQUISA ================= */
+
+.pesquisa {
+    margin-top: 20px;
+    background: #151515;
+    border: 1px solid #292929;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.pesquisa input {
+    width: 100%;
+    background: none;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 15px;
+}
+
+.pesquisa input::placeholder {
+    color: #777;
+}
+
+/* HISTÓRICO */
+
+.historico {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    margin-top: 8px;
+    scrollbar-width: none;
+}
+
+.historico::-webkit-scrollbar {
+    display: none;
+}
+
+.historico button {
+    background: #151515;
+    border: 1px solid #292929;
+    color: #aaa;
+    border-radius: 15px;
+    padding: 7px 11px;
+    white-space: nowrap;
+}
+
+/* ================= CATEGORIAS ================= */
+
+.categorias {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    padding: 5px 18px 20px;
+    scrollbar-width: none;
+}
+
+.categorias::-webkit-scrollbar {
+    display: none;
+}
+
+.categoria {
+    white-space: nowrap;
+    background: #151515;
+    border: 1px solid #292929;
+    color: #bbb;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.categoria.ativa {
+    background: white;
+    color: black;
+}
+
+/* ================= SEÇÕES ================= */
+
+main {
+    max-width: 1200px;
+    margin: auto;
+    padding: 0 18px;
+}
+
+.categoria-secao {
+    margin-top: 18px;
+    margin-bottom: 40px;
+}
+
+.titulo-secao {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 17px;
+}
+
+.titulo-secao span {
+    color: #777;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.titulo-secao h2 {
+    font-size: 25px;
+    margin-top: 4px;
+}
+
+.ver-todos {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* ================= CARROSSEL ================= */
+
+.carrossel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: 5px 2px 10px;
+}
+
+.carrossel::-webkit-scrollbar {
+    display: none;
+}
+
+/* ================= PRODUTO ================= */
+
+.produto {
+    flex: 0 0 225px;
+    background: #111;
+    border: 1px solid #242424;
+    border-radius: 20px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4);
+    transition: transform .2s, border .2s;
+}
+
+.produto:active {
+    transform: scale(.98);
+}
+
+/* ================= IMAGEM ================= */
+
+.imagem-produto {
+    height: 230px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.modo3d {
+    background:
+        radial-gradient(
+            circle at center,
+            #444 0%,
+            #202020 42%,
+            #090909 100%
+        );
+}
+
+/* efeito de luz */
+
+.modo3d::before {
+    content: "";
+    position: absolute;
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    filter: blur(25px);
+}
+
+/* sombra do produto */
+
+.modo3d::after {
+    content: "";
+    position: absolute;
+    width: 150px;
+    height: 30px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: rgba(0,0,0,.8);
+    filter: blur(13px);
+}
+
+/* emoji provisório */
+
+.produto-emoji {
+    position: relative;
+    z-index: 1;
+    font-size: 105px;
+    filter:
+        drop-shadow(0 22px 12px rgba(0,0,0,.85))
+        drop-shadow(0 0 14px rgba(255,255,255,.13));
+    transform:
+        perspective(500px)
+        rotateX(8deg)
+        scale(1.05);
+}
+
+/* quando colocarmos fotos reais */
+
+.imagem-produto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: relative;
+    z-index: 1;
+}
+
+/* ================= SELO ================= */
+
+.selo {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: white;
+    color: black;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 6px 8px;
+    border-radius: 7px;
+    z-index: 3;
+}
+
+/* ================= INFORMAÇÕES ================= */
+
+.produto-info {
+    padding: 15px;
+}
+
+.produto h3 {
+    font-size: 18px;
+    margin-bottom: 7px;
+}
+
+.produto p {
+    color: #999;
+    font-size: 12px;
+    line-height: 1.45;
+    min-height: 52px;
+}
+
+.avaliacao {
+    color: #ddd;
+    font-size: 13px;
+    margin-top: 11px;
+}
+
+.avaliacao span {
+    color: #666;
+    margin-left: 3px;
+}
+
+.rodape-produto {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 13px;
+}
+
+.rodape-produto strong {
+    font-size: 17px;
+}
+
+.adicionar {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: white;
+    color: black;
+    font-size: 24px;
+    line-height: 30px;
+    cursor: pointer;
+}
+
+/* ================= PROMOÇÃO ================= */
+
+.promocao {
+    display: flex;
+    background: #111;
+    border: 1px solid #292929;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.imagem-promocao {
+    width: 45%;
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.promocao-emoji {
+    font-size: 85px;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 20px 12px rgba(0,0,0,.85));
+}
+
+.promocao-info {
+    flex: 1;
+    padding: 22px;
+}
+
+.tag {
+    display: inline-block;
+    background: white;
+    color: black;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 6px 8px;
+    border-radius: 7px;
+}
+
+.promocao h3 {
+    font-size: 23px;
+    margin: 12px 0 8px;
+}
+
+.promocao p {
+    color: #999;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.preco-antigo {
+    color: #666;
+    text-decoration: line-through;
+    font-size: 14px;
+}
+
+.promocao-info > strong {
+    display: block;
+    font-size: 25px;
+    margin-top: 4px;
+}
+
+.botao-pedido {
+    margin-top: 15px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 11px;
+    background: white;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ================= CARRINHO ================= */
+
+.carrinho {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    max-width: 700px;
+    margin: auto;
+    background: rgba(20,20,20,.97);
+    border: 1px solid #333;
+    border-radius: 17px;
+    padding: 11px 13px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    z-index: 20;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.5);
+}
+
+.carrinho > div {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1;
+}
+
+.carrinho > div > span {
+    font-size: 23px;
+}
+
+.carrinho small {
+    display: block;
+    color: #777;
+}
+
+.carrinho button {
+    background: white;
+    color: black;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ================= MODO 2D ================= */
+
+body.modo-2d .imagem-produto {
+    height: 180px;
+    background: #151515;
+}
+
+body.modo-2d .produto {
+    display: flex;
+    flex-direction: row;
+    flex-basis: 430px;
+}
+
+body.modo-2d .imagem-produto {
+    width: 42%;
+    flex-shrink: 0;
+}
+
+body.modo-2d .produto-info {
+    width: 58%;
+}
+
+body.modo-2d .produto-emoji {
+    font-size: 65px;
+}
+
+/* ================= DESKTOP ================= */
+
+@media (min-width: 700px) {
+
+    .produto {
+        flex-basis: 240px;
+    }
+
+    .imagem-produto {
+        height: 245px;
+    }
+
+    .promocao {
+        max-width: 900px;
+    }
+}
+
+/* ================= CELULAR ================= */
+
+@media (max-width: 450px) {
+
+    .produto {
+        flex-basis: 225px;
+    }
+
+    .imagem-produto {
+        height: 220px;
+    }
+
+    .produto-emoji {
+        font-size: 100px;
+    }
+
+    .promocao {
+        flex-direction: column;
+    }
+
+    .imagem-promocao {
+        width: 100%;
+        min-height: 200px;
+    }
+
+    .promocao-info {
+        padding: 18px;
+    }
+
+    /* modo 2D no celular */
+
+    body.modo-2d .produto {
+        flex-basis: 350px;
+    }
+
+    body.modo-2d .imagem-produto {
+        height: 170px;
+    }
+
+    body.modo-2d .produto-emoji {
+        font-size: 60px;
+    }
+}
