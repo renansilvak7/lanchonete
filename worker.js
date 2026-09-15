@@ -275,11 +275,19 @@ export default {
             try {
                 const corpo = await request.json();
                 const valor = Number(corpo.valor);
+                const email = String(corpo.email || "").trim();
 
                 if (!Number.isFinite(valor) || valor <= 0) {
                     return respostaJSON({
                         ok: false,
                         erro: "Valor do pedido inválido"
+                    }, 400);
+                }
+
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    return respostaJSON({
+                        ok: false,
+                        erro: "E-mail do cliente inválido"
                     }, 400);
                 }
 
@@ -300,6 +308,9 @@ export default {
                             external_reference: `L7K-${idempotencyKey}`,
                             processing_mode: "automatic",
                             total_amount: valorFormatado,
+                            payer: {
+                                email: email
+                            },
                             transactions: {
                                 payments: [
                                     {
