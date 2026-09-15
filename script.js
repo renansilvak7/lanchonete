@@ -985,43 +985,6 @@ function campoPix(id, valor) {
            valor;
 }
 
-function gerarPayloadPix(valor) {
-    const chavePix = "37fb303c-f7fd-471d-9c79-75eed080c307";
-
-    const nome = "RENAN SILVA DO NASCIMENTO"
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .substring(0, 25)
-        .toUpperCase();
-
-    const cidade = "CARNAUBAIS"
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .substring(0, 15)
-        .toUpperCase();
-
-    const valorPix = Number(valor).toFixed(2);
-
-    const merchantAccount =
-        campoPix(0, "BR.GOV.BCB.PIX") +
-        campoPix(1, chavePix);
-
-    let payload =
-        campoPix(0, "01") +
-        campoPix(26, merchantAccount) +
-        campoPix(52, "0000") +
-        campoPix(53, "986") +
-        campoPix(54, valorPix) +
-        campoPix(58, "BR") +
-        campoPix(59, nome) +
-        campoPix(60, cidade) +
-        campoPix(62, campoPix(05, "***"));
-
-    payload += "6304";
-
-    return payload + crc16Pix(payload);
-}
-
 function iniciarTimerPix() {
     const elemento = document.getElementById("pixTimer");
 
@@ -1159,9 +1122,6 @@ async function abrirTelaPagamento(recebimento) {
 
     const total =
         Number(valorTotal());
-
-    const chavePix =
-        "37fb303c-f7fd-471d-9c79-75eed080c307";
 
     if (formaPagamento !== "PIX") {
         conteudo.innerHTML = `
@@ -1377,24 +1337,6 @@ async function abrirTelaPagamento(recebimento) {
 
                 <div class="pix-chave-app">
 
-                    <span>Chave PIX</span>
-
-                    <div>
-                        <code id="chavePixPagamento">
-                            ${chavePix}
-                        </code>
-
-                        <button
-                            type="button"
-                            id="copiarChavePix">
-                            COPIAR
-                        </button>
-                    </div>
-
-                </div>
-
-                <div class="pix-chave-app">
-
                     <span>PIX COPIA E COLA — R$ ${moeda(total)}</span>
 
                     <div>
@@ -1432,33 +1374,6 @@ async function abrirTelaPagamento(recebimento) {
 
         </div>
     `;
-
-    const copiarChave =
-        document.getElementById("copiarChavePix");
-
-    copiarChave?.addEventListener(
-        "click",
-        async () => {
-            try {
-                await navigator.clipboard.writeText(
-                    chavePix
-                );
-
-                copiarChave.textContent =
-                    "COPIADO!";
-
-                setTimeout(() => {
-                    copiarChave.textContent =
-                        "COPIAR";
-                }, 1500);
-
-            } catch {
-                alert(
-                    "Não foi possível copiar a chave PIX."
-                );
-            }
-        }
-    );
 
     const copiarPix =
         document.getElementById("copiarPix");
