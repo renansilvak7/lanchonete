@@ -327,7 +327,8 @@ export default {
                         status: resposta.status,
                         erro: dados.message ||
                             dados.error ||
-                            "Mercado Pago recusou a criação do PIX"
+                            dados.cause?.[0]?.description ||
+                            JSON.stringify(dados.cause || dados)
                     }, resposta.status);
                 }
 
