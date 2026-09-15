@@ -223,6 +223,105 @@ export default {
         }
 
         // =========================
+        // CRIAR PIX REAL
+        // =========================
+        if (url.pathname === "/api/mercadopago/criar-pix") {
+            if (request.method !== "POST") {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Método não permitido"
+                }, 405);
+            }
+
+            const token = env.MERCADO_PAGO_ACCESS_TOKEN;
+
+            if (!token) {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Secret do Mercado Pago não configurado"
+                }, 500);
+            }
+
+            try {
+                const corpo = await request.json();
+                const valor = Number(corpo.valor);
+
+                if (!Number.isFinite(valor) || valor <= 0) {
+                    return respostaJSON({
+                        ok: false,
+                        erro: "Valor do pedido inválido"
+                    }, 400);
+                }
+
+                const valorFormatado = valor.toFixed(2);
+                const idempotencyKey = crypto.randomUUID();
+
+                const resposta = await fetch(
+                    "https://api.mercadopago.com/v1/orders",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json",
+                            "X-Idempotency-Key": idempotencyKey
+                        },
+                        body: JSON.stringify({
+                            type: "online",
+                            external_reference: `L7K-${idempotencyKey}`,
+                            total_amount: valorFormatado,
+                            payer: {
+                                email: "test_user_br@testuser.com",
+                                first_name: "APRO"
+                            },
+                            transactions: {
+                                payments: [
+                                    {
+                                        amount: valorFormatado,
+                                        payment_method: {
+                                            id: "pix",
+                                            type: "bank_transfer"
+                                        }
+                                    }
+                                ]
+                            }
+                        })
+                    }
+                );
+
+                const dados = await resposta.json();
+                const pagamento = dados.transactions?.payments?.[0];
+
+                if (!resposta.ok) {
+                    return respostaJSON({
+                        ok: false,
+                        status: resposta.status,
+                        erro: dados.message ||
+                            dados.error ||
+                            "Mercado Pago recusou a criação do PIX"
+                    }, resposta.status);
+                }
+
+                return respostaJSON({
+                    ok: true,
+                    status: resposta.status,
+                    order_id: dados.id || null,
+                    status_pedido: dados.status || null,
+                    status_pagamento: pagamento?.status || null,
+                    qr_code: pagamento?.payment_method?.qr_code || null,
+                    qr_code_base64: pagamento?.payment_method?.qr_code_base64 || null,
+                    ticket_url: pagamento?.payment_method?.ticket_url || null,
+                    total_amount: valorFormatado
+                });
+
+            } catch {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Não foi possível criar o PIX"
+                }, 500);
+            }
+        }
+
+        // =========================
         // ARQUIVOS DO SITE
         // =========================
         return env.ASSETS.fetch(request);
