@@ -16,6 +16,22 @@ export default {
             );
         }
 
+        if (url.pathname === "/api/mercadopago/teste") {
+            const token = env.MERCADO_PAGO_ACCESS_TOKEN;
+
+            return new Response(
+                JSON.stringify({
+                    ok: Boolean(token),
+                    mercadoPagoSecret: token ? "configurado" : "ausente"
+                }),
+                {
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+        }
+
         return env.ASSETS.fetch(request);
     }
 };
