@@ -298,11 +298,8 @@ export default {
                         body: JSON.stringify({
                             type: "online",
                             external_reference: `L7K-${idempotencyKey}`,
+                            processing_mode: "automatic",
                             total_amount: valorFormatado,
-                            payer: {
-                                email: "test_user_br@testuser.com",
-                                first_name: "APRO"
-                            },
                             transactions: {
                                 payments: [
                                     {
