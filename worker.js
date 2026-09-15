@@ -36,7 +36,7 @@ export default {
 
             try {
                 const resposta = await fetch(
-                    "https://api.mercadopago.com/v1/orders?limit=1",
+                    "https://api.mercadopago.com/v1/orders?begin_date=2026-09-01T00:00:00Z&end_date=2026-09-15T23:59:59Z",
                     {
                         method: "GET",
                         headers: {
