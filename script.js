@@ -1259,7 +1259,8 @@ async function abrirTelaPagamento(recebimento) {
                                 "application/json"
                         },
                         body: JSON.stringify({
-                            valor: total
+                            valor: total,
+                            email: "marajosianesilva75443@gmail.com"
                         })
                     }
                 );
