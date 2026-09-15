@@ -35,7 +35,6 @@ export default {
                 const resposta = await fetch(
                     "https://api.mercadopago.com/v1/orders?begin_date=2026-09-01T00:00:00Z&end_date=2026-09-15T23:59:59Z",
                     {
-                        method: "GET",
                         headers: {
                             "Authorization": `Bearer ${token}`,
                             "Content-Type": "application/json"
@@ -59,7 +58,7 @@ export default {
             }
         }
 
-        if (url.pathname === "/api/mercadopago/criar-pix") {
+        if (url.pathname === "/api/mercadopago/criar-pix-teste") {
             if (request.method !== "POST") {
                 return respostaJSON({
                     ok: false,
@@ -77,17 +76,6 @@ export default {
             }
 
             try {
-                const corpo = await request.json();
-
-                const valor = Number(corpo.valor);
-
-                if (!Number.isFinite(valor) || valor <= 0) {
-                    return respostaJSON({
-                        ok: false,
-                        erro: "Valor inválido"
-                    }, 400);
-                }
-
                 const idempotencyKey = crypto.randomUUID();
 
                 const resposta = await fetch(
@@ -101,13 +89,16 @@ export default {
                         },
                         body: JSON.stringify({
                             type: "online",
-                            processing_mode: "automatic",
-                            total_amount: valor.toFixed(2),
-                            external_reference: corpo.codigo || "TESTE-LANCHESK7",
+                            external_reference: "L7K-TESTE-PIX",
+                            total_amount: "50.00",
+                            payer: {
+                                email: "test_user_br@testuser.com",
+                                first_name: "APRO"
+                            },
                             transactions: {
                                 payments: [
                                     {
-                                        amount: valor.toFixed(2),
+                                        amount: "50.00",
                                         payment_method: {
                                             id: "pix",
                                             type: "bank_transfer"
@@ -120,16 +111,15 @@ export default {
                 );
 
                 const dados = await resposta.json();
+                const pagamento = dados.transactions?.payments?.[0];
 
                 if (!resposta.ok) {
                     return respostaJSON({
                         ok: false,
                         status: resposta.status,
-                        erro: dados.message || dados.error || "Mercado Pago recusou a criação do Pix"
+                        erro: dados.message || dados.error || "Mercado Pago recusou o teste"
                     }, resposta.status);
                 }
-
-                const pagamento = dados.transactions?.payments?.[0];
 
                 return respostaJSON({
                     ok: true,
@@ -142,7 +132,7 @@ export default {
                     ticket_url: pagamento?.payment_method?.ticket_url || null
                 });
 
-            } catch (erro) {
+            } catch {
                 return respostaJSON({
                     ok: false,
                     erro: "Não foi possível criar o Pix de teste"
