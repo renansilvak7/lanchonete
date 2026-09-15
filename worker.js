@@ -65,6 +65,36 @@ export default {
         }
 
         // =========================
+        // WEBHOOK MERCADO PAGO
+        // =========================
+        if (url.pathname === "/api/mercadopago/webhook") {
+            if (request.method !== "POST") {
+                return respostaJSON({
+                    ok: true,
+                    mensagem: "Webhook Mercado Pago ativo"
+                });
+            }
+
+            try {
+                const dados = await request.json();
+
+                console.log(
+                    "Webhook Mercado Pago:",
+                    JSON.stringify(dados)
+                );
+
+                return respostaJSON({
+                    ok: true
+                });
+
+            } catch {
+                return respostaJSON({
+                    ok: true
+                });
+            }
+        }
+
+        // =========================
         // CRIAR PIX DE TESTE OFICIAL
         // =========================
         if (url.pathname === "/api/mercadopago/criar-pix-teste") {
