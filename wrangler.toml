@@ -1,5 +1,7 @@
 name = "lanchonete"
+main = "worker.js"
 compatibility_date = "2026-09-14"
 
 [assets]
 directory = "."
+binding = "ASSETS"
