@@ -5,6 +5,42 @@ const campoPesquisa = document.getElementById("campoPesquisa");
 
 let categoriaAtual = "todos";
 let pedido = [];
+let telaPagamentoAtiva = false;
+
+function definirTelaPagamentoAtiva(ativa) {
+    telaPagamentoAtiva = ativa;
+
+    const modal = document.getElementById("modalPedido");
+    const botaoFechar = modal?.querySelector(".fechar-pedido");
+
+    if (botaoFechar) {
+        botaoFechar.style.display = ativa ? "none" : "";
+    }
+}
+
+try {
+    const pedidoSalvo = localStorage.getItem("lanchesk7_pedido");
+
+    if (pedidoSalvo) {
+        const dados = JSON.parse(pedidoSalvo);
+
+        if (Array.isArray(dados)) {
+            pedido = dados.filter(item =>
+                item &&
+                typeof item.nome === "string" &&
+                Number.isFinite(Number(item.preco)) &&
+                Number.isFinite(Number(item.quantidade)) &&
+                Number(item.quantidade) > 0
+            ).map(item => ({
+                ...item,
+                preco: Number(item.preco),
+                quantidade: Number(item.quantidade)
+            }));
+        }
+    }
+} catch (erro) {
+    console.warn("Não foi possível restaurar o carrinho:", erro);
+}
 let produtoAtual = null;
 let quantidadeAtual = 1;
 let formaPagamento = null;
@@ -133,6 +169,15 @@ function encontrarProduto(nome) {
 }
 
 function atualizarCarrinhoInterface() {
+    try {
+        localStorage.setItem(
+            "lanchesk7_pedido",
+            JSON.stringify(pedido)
+        );
+    } catch (erro) {
+        console.warn("Não foi possível salvar o carrinho:", erro);
+    }
+
     const quantidade = quantidadeTotal();
 
     document
@@ -209,11 +254,19 @@ function criarModal() {
 
     modal
         .querySelector(".pedido-modal-fundo")
-        .addEventListener("click", fecharModal);
+        .addEventListener("click", () => {
+            if (!telaPagamentoAtiva) {
+                fecharModal();
+            }
+        });
 
     modal
         .querySelector(".fechar-pedido")
-        .addEventListener("click", fecharModal);
+        .addEventListener("click", () => {
+            if (!telaPagamentoAtiva) {
+                fecharModal();
+            }
+        });
 }
 
 function abrirModal() {
@@ -227,6 +280,7 @@ function abrirModal() {
 }
 
 function fecharModal() {
+    definirTelaPagamentoAtiva(false);
     const modal =
         document.getElementById("modalPedido");
 
@@ -234,6 +288,8 @@ function fecharModal() {
 
     modal.classList.remove("aberto");
     document.body.style.overflow = "";
+
+    salvarTelaMenu();
 }
 
 /* =========================
@@ -430,7 +486,60 @@ function adicionarAoCarrinho() {
     fecharModal();
 }
 
+function salvarEtapaCheckout(etapa) {
+    try {
+        localStorage.setItem("lanchesk7_tela_atual", etapa);
+
+        localStorage.setItem(
+            "lanchesk7_checkout_estado",
+            JSON.stringify({
+                formaPagamento,
+                recebimentoAtual,
+                observacaoAtual
+            })
+        );
+    } catch (erro) {
+        console.warn("Não foi possível salvar o estado do checkout:", erro);
+    }
+}
+
+function salvarTelaMenu() {
+    try {
+        localStorage.setItem("lanchesk7_tela_atual", "menu");
+    } catch (erro) {
+        console.warn("Não foi possível salvar a tela atual:", erro);
+    }
+}
+
+function restaurarEstadoCheckout() {
+    try {
+        const estadoSalvo =
+            localStorage.getItem("lanchesk7_checkout_estado");
+
+        if (estadoSalvo) {
+            const estado = JSON.parse(estadoSalvo);
+
+            formaPagamento =
+                estado.formaPagamento || null;
+
+            recebimentoAtual =
+                estado.recebimentoAtual || null;
+
+            observacaoAtual =
+                estado.observacaoAtual || "";
+        }
+
+        return localStorage.getItem("lanchesk7_tela_atual") || "menu";
+
+    } catch (erro) {
+        console.warn("Não foi possível restaurar o checkout:", erro);
+        return "menu";
+    }
+}
+
 function mostrarCarrinho() {
+    definirTelaPagamentoAtiva(false);
+    salvarEtapaCheckout("carrinho");
     abrirModal();
 
     const conteudo =
@@ -657,14 +766,16 @@ function mostrarCarrinho() {
 }
 
 function abrirFinalizacao() {
+    definirTelaPagamentoAtiva(false);
+    salvarEtapaCheckout("finalizacao");
     abrirModal();
 
     const conteudo =
         document.getElementById("conteudoPedido");
 
-    formaPagamento = null;
-    recebimentoAtual = null;
-    observacaoAtual = "";
+    if (!formaPagamento) formaPagamento = null;
+    if (!recebimentoAtual) recebimentoAtual = null;
+    if (!observacaoAtual) observacaoAtual = "";
 
     conteudo.innerHTML = `
         <div class="finalizacao-app">
@@ -804,6 +915,8 @@ function abrirFinalizacao() {
 
                 formaPagamento =
                     botao.dataset.pagamento;
+
+                salvarEtapaCheckout("finalizacao");
             });
         });
 
@@ -842,6 +955,8 @@ function confirmarFormaPagamento() {
 
     recebimentoAtual =
         recebimento.value;
+
+    salvarEtapaCheckout("pagamento");
 
     abrirTelaPagamento(recebimentoAtual);
 }
@@ -907,193 +1022,614 @@ function gerarPayloadPix(valor) {
     return payload + crc16Pix(payload);
 }
 
-function abrirTelaPagamento(recebimento) {
+function iniciarTimerPix() {
+    const elemento = document.getElementById("pixTimer");
+
+    if (!elemento) return;
+
+    const chaveTimer = "lanchesk7_pix_expira_em";
+
+    let expiracao =
+        Number(localStorage.getItem(chaveTimer));
+
+    if (
+        !Number.isFinite(expiracao) ||
+        expiracao <= Date.now()
+    ) {
+        expiracao =
+            Date.now() + (5 * 60 * 1000);
+
+        localStorage.setItem(
+            chaveTimer,
+            String(expiracao)
+        );
+    }
+
+    if (window.timerPixInterval) {
+        clearInterval(window.timerPixInterval);
+    }
+
+    function atualizar() {
+        const restante =
+            Math.max(0, expiracao - Date.now());
+
+        const minutos =
+            Math.floor(restante / 60000);
+
+        const segundos =
+            Math.floor(
+                (restante % 60000) / 1000
+            );
+
+        elemento.textContent =
+            `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
+
+        if (restante <= 0) {
+            clearInterval(
+                window.timerPixInterval
+            );
+
+            window.timerPixInterval =
+                null;
+
+            localStorage.removeItem(
+                chaveTimer
+            );
+
+            if (
+                typeof pararVerificacaoPixMercadoPago ===
+                "function"
+            ) {
+                pararVerificacaoPixMercadoPago();
+            }
+
+            elemento.textContent =
+                "PIX EXPIRADO";
+        }
+    }
+
+    atualizar();
+
+    window.timerPixInterval =
+        setInterval(atualizar, 1000);
+}
+
+function pararTimerPix(limparEstado = true) {
+    if (window.timerPixInterval) {
+        clearInterval(window.timerPixInterval);
+        window.timerPixInterval = null;
+    }
+
+    if (limparEstado) {
+        localStorage.removeItem(
+            "lanchesk7_pix_expira_em"
+        );
+    }
+}
+
+function salvarPixMercadoPago(dados) {
+    try {
+        localStorage.setItem(
+            "lanchesk7_pix_dados",
+            JSON.stringify(dados)
+        );
+    } catch (erro) {
+        console.warn(
+            "Não foi possível salvar os dados do PIX:",
+            erro
+        );
+    }
+}
+
+function obterPixMercadoPago() {
+    try {
+        const dados =
+            localStorage.getItem(
+                "lanchesk7_pix_dados"
+            );
+
+        return dados
+            ? JSON.parse(dados)
+            : null;
+
+    } catch (erro) {
+        console.warn(
+            "Não foi possível restaurar os dados do PIX:",
+            erro
+        );
+
+        return null;
+    }
+}
+
+function limparPixMercadoPago() {
+    localStorage.removeItem(
+        "lanchesk7_pix_dados"
+    );
+}
+
+async function abrirTelaPagamento(recebimento) {
+    definirTelaPagamentoAtiva(true);
+    recebimentoAtual = recebimento;
+    salvarEtapaCheckout("pagamento");
     abrirModal();
 
-    const conteudo = document.getElementById("conteudoPedido");
-    const total = Number(valorTotal());
+    const conteudo =
+        document.getElementById("conteudoPedido");
+
+    const total =
+        Number(valorTotal());
 
     const chavePix =
         "37fb303c-f7fd-471d-9c79-75eed080c307";
 
-    const payloadPix =
-        formaPagamento === "PIX"
-            ? gerarPayloadPix(total)
-            : "";
+    if (formaPagamento !== "PIX") {
+        conteudo.innerHTML = `
+            <div class="pagamento-app">
 
-    const qrPix =
-        formaPagamento === "PIX"
-            ? `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(payloadPix)}`
-            : "";
+                <span class="produto-pedido-etiqueta">
+                    PAGAMENTO COM CARTÃO
+                </span>
+
+                <h2>Pagamento com cartão</h2>
+
+                <div class="pagamento-valor-app">
+                    <span>Valor exato do pedido</span>
+                    <strong>R$ ${moeda(total)}</strong>
+                </div>
+
+                <div class="cartao-app">
+
+                    <div class="cartao-icone">💳</div>
+
+                    <h3>Pagamento seguro</h3>
+
+                    <p>
+                        O pagamento com cartão será realizado
+                        por um checkout seguro do provedor.
+                    </p>
+
+                    <button
+                        type="button"
+                        class="botao-finalizar"
+                        id="checkoutSeguro">
+                        PAGAR COM CARTÃO
+                    </button>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="botao-secundario"
+                    id="voltarCheckout">
+                    VOLTAR
+                </button>
+
+            </div>
+        `;
+
+        document
+            .getElementById("voltarCheckout")
+            ?.addEventListener("click", () => {
+                abrirFinalizacao();
+            });
+
+        return;
+    }
+
+    let pix = obterPixMercadoPago();
+
+    const pixValido =
+        pix &&
+        pix.order_id &&
+        Number(pix.total_amount) === total &&
+        pix.qr_code &&
+        pix.qr_code_base64;
+
+    if (!pixValido) {
+        conteudo.innerHTML = `
+            <div class="pagamento-app">
+
+                <span class="produto-pedido-etiqueta">
+                    PAGAMENTO PIX
+                </span>
+
+                <h2>Gerando PIX...</h2>
+
+                <div class="pagamento-valor-app">
+                    <span>Valor exato do pedido</span>
+                    <strong>R$ ${moeda(total)}</strong>
+                </div>
+
+                <p class="pix-aviso-app">
+                    Aguarde enquanto geramos seu QR Code de pagamento.
+                </p>
+
+            </div>
+        `;
+
+        try {
+            const resposta =
+                await fetch(
+                    "/api/mercadopago/criar-pix",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body: JSON.stringify({
+                            valor: total
+                        })
+                    }
+                );
+
+            const dados =
+                await resposta.json();
+
+            if (
+                !resposta.ok ||
+                !dados.ok ||
+                !dados.order_id ||
+                !dados.qr_code ||
+                !dados.qr_code_base64
+            ) {
+                throw new Error(
+                    dados.erro ||
+                    "Não foi possível gerar o PIX."
+                );
+            }
+
+            pix = dados;
+
+            salvarPixMercadoPago({
+                order_id: dados.order_id,
+                qr_code: dados.qr_code,
+                qr_code_base64:
+                    dados.qr_code_base64,
+                ticket_url:
+                    dados.ticket_url || null,
+                total_amount:
+                    dados.total_amount
+            });
+
+        } catch (erro) {
+            conteudo.innerHTML = `
+                <div class="pagamento-app">
+
+                    <span class="produto-pedido-etiqueta">
+                        PAGAMENTO PIX
+                    </span>
+
+                    <h2>Não foi possível gerar o PIX</h2>
+
+                    <p class="pix-aviso-app">
+                        ${erro.message ||
+                            "Tente novamente."}
+                    </p>
+
+                    <button
+                        type="button"
+                        class="botao-finalizar"
+                        id="tentarPixNovamente">
+                        TENTAR NOVAMENTE
+                    </button>
+
+                    <button
+                        type="button"
+                        class="botao-secundario"
+                        id="voltarCheckout">
+                        VOLTAR
+                    </button>
+
+                </div>
+            `;
+
+            document
+                .getElementById("tentarPixNovamente")
+                ?.addEventListener("click", () => {
+                    limparPixMercadoPago();
+                    abrirTelaPagamento(recebimento);
+                });
+
+            document
+                .getElementById("voltarCheckout")
+                ?.addEventListener("click", () => {
+                    abrirFinalizacao();
+                });
+
+            return;
+        }
+    }
+
+    const qrBase64 =
+        pix.qr_code_base64.startsWith("data:")
+            ? pix.qr_code_base64
+            : `data:image/png;base64,${pix.qr_code_base64}`;
 
     conteudo.innerHTML = `
         <div class="pagamento-app">
 
             <span class="produto-pedido-etiqueta">
-                ${formaPagamento === "PIX"
-                    ? "PAGAMENTO PIX"
-                    : "PAGAMENTO COM CARTÃO"}
+                PAGAMENTO PIX
             </span>
 
-            <h2>
-                ${formaPagamento === "PIX"
-                    ? "Pague pelo PIX"
-                    : "Pagamento com cartão"}
-            </h2>
+            <h2>Pague pelo PIX</h2>
 
             <div class="pagamento-valor-app">
                 <span>Valor exato do pedido</span>
                 <strong>R$ ${moeda(total)}</strong>
             </div>
 
-            ${
-                formaPagamento === "PIX"
-                    ? `
-                        <div class="pix-app">
+            <div class="pix-app">
 
-                            <div class="pix-qr-app">
-                                <img
-                                    src="${qrPix}"
-                                    alt="QR Code PIX no valor de R$ ${moeda(total)}">
-                            </div>
+                <div class="pix-contador-app">
+                    <small>TEMPO PARA PAGAMENTO</small>
+                    <strong id="pixTimer">05:00</strong>
+                </div>
 
-                            <div class="pix-chave-app">
+                <div class="pix-qr-app">
+                    <img
+                        src="${qrBase64}"
+                        alt="QR Code PIX no valor de R$ ${moeda(total)}">
+                </div>
 
-                                <span>Chave PIX</span>
+                <div class="pix-chave-app">
 
-                                <div>
-                                    <code id="chavePixPagamento">
-                                        ${chavePix}
-                                    </code>
+                    <span>Chave PIX</span>
 
-                                    <button
-                                        type="button"
-                                        id="copiarChavePix">
-                                        COPIAR
-                                    </button>
-                                </div>
+                    <div>
+                        <code id="chavePixPagamento">
+                            ${chavePix}
+                        </code>
 
-                            </div>
+                        <button
+                            type="button"
+                            id="copiarChavePix">
+                            COPIAR
+                        </button>
+                    </div>
 
-                            <div class="pix-chave-app">
+                </div>
 
-                                <span>PIX COPIA E COLA — R$ ${moeda(total)}</span>
+                <div class="pix-chave-app">
 
-                                <div>
-                                    <code
-                                        id="codigoPixPagamento"
-                                        style="word-break:break-all;">
-                                        ${payloadPix}
-                                    </code>
+                    <span>PIX COPIA E COLA — R$ ${moeda(total)}</span>
 
-                                    <button
-                                        type="button"
-                                        id="copiarPix">
-                                        COPIAR
-                                    </button>
-                                </div>
+                    <div>
+                        <code
+                            id="codigoPixPagamento"
+                            style="word-break:break-all;">
+                            ${pix.qr_code}
+                        </code>
 
-                            </div>
+                        <button
+                            type="button"
+                            id="copiarPix">
+                            COPIAR
+                        </button>
+                    </div>
 
-                            <div class="pix-contador-app">
-                                <small>TEMPO PARA PAGAMENTO</small>
-                                <strong id="pixTimer">05:00</strong>
-                            </div>
+                </div>
 
-                            <p class="pix-aviso-app">
-                                O QR Code e o Pix Copia e Cola foram
-                                gerados para o valor exato de
-                                R$ ${moeda(total)}.
-                                Confira o valor e o recebedor no aplicativo
-                                do seu banco antes de confirmar.
-                            </p>
+                <p class="pix-aviso-app">
+                    O QR Code e o Pix Copia e Cola foram
+                    gerados pelo Mercado Pago para o valor exato
+                    de R$ ${moeda(total)}.
+                    Confira o valor e o recebedor no aplicativo
+                    do seu banco antes de confirmar.
+                </p>
 
-                        </div>
-                    `
-                    : `
-                        <div class="cartao-app">
-
-                            <div class="cartao-icone">💳</div>
-
-                            <h3>Pagamento seguro</h3>
-
-                            <p>
-                                O pagamento com cartão será realizado
-                                por um checkout seguro do provedor.
-                            </p>
-
-                            <button
-                                type="button"
-                                class="botao-finalizar"
-                                id="checkoutSeguro">
-                                PAGAR COM CARTÃO
-                            </button>
-
-                        </div>
-                    `
-            }
+            </div>
 
             <button
                 type="button"
                 class="botao-secundario"
                 id="voltarCheckout">
-                VOLTAR
+                CANCELAR
             </button>
 
         </div>
     `;
 
-    const copiarChave = document.getElementById("copiarChavePix");
+    const copiarChave =
+        document.getElementById("copiarChavePix");
 
-    if (copiarChave) {
-        copiarChave.addEventListener("click", async () => {
+    copiarChave?.addEventListener(
+        "click",
+        async () => {
             try {
-                await navigator.clipboard.writeText(chavePix);
+                await navigator.clipboard.writeText(
+                    chavePix
+                );
 
-                copiarChave.textContent = "COPIADO!";
+                copiarChave.textContent =
+                    "COPIADO!";
 
                 setTimeout(() => {
-                    copiarChave.textContent = "COPIAR";
+                    copiarChave.textContent =
+                        "COPIAR";
                 }, 1500);
 
             } catch {
-                alert("Não foi possível copiar a chave PIX.");
+                alert(
+                    "Não foi possível copiar a chave PIX."
+                );
             }
-        });
-    }
+        }
+    );
 
-    const copiarPix = document.getElementById("copiarPix");
+    const copiarPix =
+        document.getElementById("copiarPix");
 
-    if (copiarPix) {
-        copiarPix.addEventListener("click", async () => {
+    copiarPix?.addEventListener(
+        "click",
+        async () => {
             try {
-                await navigator.clipboard.writeText(payloadPix);
+                await navigator.clipboard.writeText(
+                    pix.qr_code
+                );
 
-                copiarPix.textContent = "COPIADO!";
+                copiarPix.textContent =
+                    "COPIADO!";
 
                 setTimeout(() => {
-                    copiarPix.textContent = "COPIAR";
+                    copiarPix.textContent =
+                        "COPIAR";
                 }, 1500);
 
             } catch {
-                alert("Não foi possível copiar o Pix Copia e Cola.");
+                alert(
+                    "Não foi possível copiar o Pix Copia e Cola."
+                );
             }
+        }
+    );
+
+    document
+        .getElementById("voltarCheckout")
+        ?.addEventListener("click", () => {
+            cancelarPixMercadoPago();
         });
+
+    iniciarTimerPix();
+    iniciarVerificacaoPixMercadoPago();
+}
+
+async function verificarPixMercadoPago() {
+    const pix =
+        obterPixMercadoPago();
+
+    if (!pix?.order_id) {
+        return;
     }
 
-    const voltarCheckout = document.getElementById("voltarCheckout");
+    try {
+        const resposta =
+            await fetch(
+                `/api/mercadopago/verificar-pix?order_id=${encodeURIComponent(pix.order_id)}`
+            );
 
-    if (voltarCheckout) {
-        voltarCheckout.addEventListener("click", () => {
-            abrirFinalizacao();
-        });
-    }
+        const dados =
+            await resposta.json();
 
-    if (formaPagamento === "PIX") {
-        iniciarTimerPix();
+        if (!resposta.ok || !dados.ok) {
+            return;
+        }
+
+        const pagamentoProcessado =
+            dados.status_pagamento === "processed" &&
+            dados.status_detail === "accredited";
+
+        if (!pagamentoProcessado) {
+            return;
+        }
+
+        if (window.pixMercadoPagoInterval) {
+            clearInterval(
+                window.pixMercadoPagoInterval
+            );
+
+            window.pixMercadoPagoInterval =
+                null;
+        }
+
+        pararTimerPix(true);
+
+        const codigo =
+            gerarCodigoPedido();
+
+        mostrarPagamentoConfirmado(
+            codigo,
+            recebimentoAtual,
+            observacaoAtual
+        );
+
+    } catch (erro) {
+        console.warn(
+            "Não foi possível verificar o PIX:",
+            erro
+        );
     }
 }
 
+function iniciarVerificacaoPixMercadoPago() {
+    if (window.pixMercadoPagoInterval) {
+        clearInterval(
+            window.pixMercadoPagoInterval
+        );
+    }
+
+    verificarPixMercadoPago();
+
+    window.pixMercadoPagoInterval =
+        setInterval(
+            verificarPixMercadoPago,
+            4000
+        );
+}
+
+function pararVerificacaoPixMercadoPago() {
+    if (window.pixMercadoPagoInterval) {
+        clearInterval(
+            window.pixMercadoPagoInterval
+        );
+
+        window.pixMercadoPagoInterval =
+            null;
+    }
+}
+
+async function cancelarPixMercadoPago() {
+    pararTimerPix(true);
+    pararVerificacaoPixMercadoPago();
+
+    const pix =
+        obterPixMercadoPago();
+
+    if (!pix?.order_id) {
+        limparPixMercadoPago();
+        abrirFinalizacao();
+        return;
+    }
+
+    try {
+        const resposta =
+            await fetch(
+                "/api/mercadopago/cancelar-pix",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body: JSON.stringify({
+                        order_id:
+                            pix.order_id
+                    })
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        if (!resposta.ok || !dados.ok) {
+            console.warn(
+                "Não foi possível cancelar o PIX:",
+                dados.erro
+            );
+        }
+
+    } catch (erro) {
+        console.warn(
+            "Erro ao cancelar o PIX:",
+            erro
+        );
+    }
+
+    limparPixMercadoPago();
+    abrirFinalizacao();
+}
 
 function confirmarPagamentoTeste() {
     alert(
@@ -1203,6 +1739,11 @@ function mostrarPagamentoConfirmado(
             formaPagamento = null;
             recebimentoAtual = null;
             observacaoAtual = "";
+
+            localStorage.removeItem("lanchesk7_pedido");
+            localStorage.removeItem("lanchesk7_etapa");
+            localStorage.removeItem("lanchesk7_checkout_estado");
+            localStorage.removeItem("lanchesk7_pix_expira_em");
 
             atualizarCarrinhoInterface();
             fecharModal();
@@ -1357,3 +1898,27 @@ document
 criarModal();
 atualizarProdutos();
 atualizarCarrinhoInterface();
+
+const telaSalva = restaurarEstadoCheckout();
+
+if (telaSalva === "carrinho" && pedido.length) {
+    mostrarCarrinho();
+
+} else if (telaSalva === "finalizacao" && pedido.length) {
+    abrirFinalizacao();
+
+} else if (
+    telaSalva === "pagamento" &&
+    pedido.length &&
+    recebimentoAtual &&
+    formaPagamento
+) {
+    abrirTelaPagamento(recebimentoAtual);
+
+} else {
+    salvarTelaMenu();
+
+    if (!pedido.length) {
+        localStorage.removeItem("lanchesk7_checkout_estado");
+    }
+}

@@ -322,6 +322,171 @@ export default {
         }
 
         // =========================
+                // =========================
+        // CANCELAR PIX REAL
+        // =========================
+        if (url.pathname === "/api/mercadopago/cancelar-pix") {
+            if (request.method !== "POST") {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Método não permitido"
+                }, 405);
+            }
+
+            const token =
+                env.MERCADO_PAGO_ACCESS_TOKEN;
+
+            if (!token) {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Secret do Mercado Pago não configurado"
+                }, 500);
+            }
+
+            try {
+                const corpo =
+                    await request.json();
+
+                const orderId =
+                    corpo.order_id;
+
+                if (!orderId) {
+                    return respostaJSON({
+                        ok: false,
+                        erro: "order_id não informado"
+                    }, 400);
+                }
+
+                const resposta =
+                    await fetch(
+                        `https://api.mercadopago.com/v1/orders/${encodeURIComponent(orderId)}/cancel`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Authorization":
+                                    `Bearer ${token}`,
+                                "Content-Type":
+                                    "application/json"
+                            }
+                        }
+                    );
+
+                const dados =
+                    await resposta.json();
+
+                if (!resposta.ok) {
+                    return respostaJSON({
+                        ok: false,
+                        status: resposta.status,
+                        erro:
+                            dados.message ||
+                            dados.error ||
+                            "Não foi possível cancelar o PIX"
+                    }, resposta.status);
+                }
+
+                return respostaJSON({
+                    ok: true,
+                    status: resposta.status,
+                    order_id:
+                        dados.id || orderId,
+                    status_pedido:
+                        dados.status || null
+                });
+
+            } catch {
+                return respostaJSON({
+                    ok: false,
+                    erro:
+                        "Não foi possível cancelar o PIX"
+                }, 500);
+            }
+        }
+
+// VERIFICAR PIX REAL
+        // =========================
+        if (url.pathname === "/api/mercadopago/verificar-pix") {
+            if (request.method !== "GET") {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Método não permitido"
+                }, 405);
+            }
+
+            const token =
+                env.MERCADO_PAGO_ACCESS_TOKEN;
+
+            if (!token) {
+                return respostaJSON({
+                    ok: false,
+                    erro: "Secret do Mercado Pago não configurado"
+                }, 500);
+            }
+
+            const orderId =
+                url.searchParams.get("order_id");
+
+            if (!orderId) {
+                return respostaJSON({
+                    ok: false,
+                    erro: "order_id não informado"
+                }, 400);
+            }
+
+            try {
+                const resposta =
+                    await fetch(
+                        `https://api.mercadopago.com/v1/orders/${encodeURIComponent(orderId)}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                "Authorization":
+                                    `Bearer ${token}`
+                            }
+                        }
+                    );
+
+                const dados =
+                    await resposta.json();
+
+                const pagamento =
+                    dados.transactions?.payments?.[0];
+
+                if (!resposta.ok) {
+                    return respostaJSON({
+                        ok: false,
+                        status: resposta.status,
+                        erro:
+                            dados.message ||
+                            dados.error ||
+                            "Não foi possível consultar o PIX"
+                    }, resposta.status);
+                }
+
+                return respostaJSON({
+                    ok: true,
+                    status: resposta.status,
+                    order_id: dados.id || null,
+                    status_pedido:
+                        dados.status || null,
+                    status_pagamento:
+                        pagamento?.status || null,
+                    status_detail:
+                        pagamento?.status_detail || null,
+                    total_amount:
+                        dados.total_amount || null
+                });
+
+            } catch {
+                return respostaJSON({
+                    ok: false,
+                    erro:
+                        "Não foi possível consultar o PIX"
+                }, 500);
+            }
+        }
+
+        // =========================
         // ARQUIVOS DO SITE
         // =========================
         return env.ASSETS.fetch(request);
