@@ -1179,12 +1179,42 @@ async function abrirTelaPagamento(recebimento) {
 
     let pix = obterPixMercadoPago();
 
-    const pixValido =
+    let pixValido =
         pix &&
         pix.order_id &&
         Number(pix.total_amount) === total &&
         pix.qr_code &&
         pix.qr_code_base64;
+
+    if (pixValido) {
+        try {
+            const verificacao =
+                await fetch(
+                    `/api/mercadopago/verificar-pix?order_id=${encodeURIComponent(pix.order_id)}`
+                );
+
+            const statusPix =
+                await verificacao.json();
+
+            const jaFoiPago =
+                verificacao.ok &&
+                statusPix.ok &&
+                statusPix.status_pagamento === "processed" &&
+                statusPix.status_detail === "accredited";
+
+            if (jaFoiPago) {
+                limparPixMercadoPago();
+                pix = null;
+                pixValido = false;
+            }
+
+        } catch (erro) {
+            console.warn(
+                "Não foi possível validar o PIX salvo:",
+                erro
+            );
+        }
+    }
 
     if (!pixValido) {
         conteudo.innerHTML = `
@@ -1572,7 +1602,84 @@ function gerarCodigoPedido() {
         return resultado;
     }
 
-    return `L7K-${bloco(4)}-${bloco(4)}`;
+    return `LK7-${bloco(4)}-${bloco(4)}`;
+}
+
+function gerarMensagemFormalPedido() {
+    const saudacoes = [
+        "Caro senhor, cara senhora,",
+        "Estimado cliente,",
+        "Estimado senhor, estimada senhora,",
+        "Digníssimo cliente,",
+        "Ilustre cliente,",
+        "Prezado senhor, prezada senhora,",
+        "Mui estimado cliente,"
+    ];
+
+    const agradecimentos = [
+        "Aceite nossos mais humildes agradecimentos pela preferência e pela confiança depositada em nosso estabelecimento.",
+        "É com grande satisfação que recebemos sua escolha e agradecemos profundamente pela preferência.",
+        "Permita-nos expressar nossa sincera gratidão por sua compra e pela confiança em nossa casa.",
+        "Receba nossos mais sinceros agradecimentos pela honrosa preferência.",
+        "Aceite, por gentileza, nossos humildes agradecimentos pela confiança que nos foi concedida.",
+        "É com grande apreço que agradecemos a distinção de sua preferência.",
+        "Temos a honra de agradecer pela confiança depositada em nosso estabelecimento."
+    ];
+
+    const confirmacoes = [
+        "Seu pedido foi devidamente confirmado e será preparado com o devido cuidado.",
+        "Informamos que seu pedido foi devidamente confirmado e encontra-se agora sob os cuidados de nossa equipe.",
+        "Seu pedido encontra-se devidamente confirmado, e nossa equipe tratará de prepará-lo com toda a atenção que lhe é devida.",
+        "Comunicamos que sua solicitação foi devidamente recebida e confirmada, passando agora à etapa de preparação.",
+        "Temos a satisfação de informar que seu pedido fora devidamente confirmado e será preparado com todo o zelo necessário.",
+        "Diante da confirmação recebida, seu pedido encontra-se oficialmente liberado para preparação.",
+        "Sua solicitação foi recebida com êxito e será cuidadosamente preparada por nossa equipe."
+    ];
+
+    const encerramentos = [
+        "Receba nossos sinceros cumprimentos.",
+        "Muito obrigado pela preferência.",
+        "Com elevada consideração, LanchesK7.",
+        "Nossos mais sinceros agradecimentos.",
+        "É uma honra poder servi-lo.",
+        "Que nosso trabalho faça jus à confiança que nos foi concedida.",
+        "Esperamos que sua experiência seja digna de sua expectativa.",
+        "Sem mais para o momento, renovamos nossos agradecimentos.",
+        "Com distinta consideração, LanchesK7."
+    ];
+
+    const escolher = lista =>
+        lista[Math.floor(Math.random() * lista.length)];
+
+    return [
+        escolher(saudacoes),
+        "",
+        escolher(agradecimentos),
+        "",
+        escolher(confirmacoes),
+        "",
+        escolher(encerramentos)
+    ].join("\n");
+}
+
+function formatarItensConfirmacao() {
+    return pedido
+        .map(item => `${item.quantidade}x ${item.nome}`)
+        .join(", ");
+}
+
+function formatarRecebimentoConfirmacao(recebimento) {
+    const texto = String(recebimento || "").toLowerCase();
+
+    if (
+        texto.includes("retirada") ||
+        texto.includes("buscar") ||
+        texto.includes("estabelecimento")
+    ) {
+        return "Retirada: Retirada no estabelecimento";
+    }
+
+    return "Entrega: Entrega";
 }
 
 function mostrarPagamentoConfirmado(
@@ -1594,9 +1701,16 @@ function mostrarPagamentoConfirmado(
 
             <h2>Pagamento confirmado!</h2>
 
-            <p>
-                Seu pedido foi registrado.
-            </p>
+            <div class="mensagem-formal-pedido">
+                ${gerarMensagemFormalPedido()
+                    .split("\n")
+                    .map(parte =>
+                        parte
+                            ? `<p>${parte}</p>`
+                            : `<br>`
+                    )
+                    .join("")}
+            </div>
 
             <div class="codigo-pedido">
                 ${codigo}
@@ -1606,7 +1720,7 @@ function mostrarPagamentoConfirmado(
 
                 <p>
                     <strong>Itens:</strong>
-                    ${quantidadeTotal()}
+                    ${formatarItensConfirmacao()}
                 </p>
 
                 <p>
@@ -1615,12 +1729,11 @@ function mostrarPagamentoConfirmado(
                 </p>
 
                 <p>
-                    <strong>Recebimento:</strong>
-                    ${recebimento}
+                    ${formatarRecebimentoConfirmacao(recebimento)}
                 </p>
 
                 <p>
-                    <strong>Pagamento:</strong>
+                    <strong>Forma de pagamento:</strong>
                     ${formaPagamento}
                 </p>
 
@@ -1660,6 +1773,7 @@ function mostrarPagamentoConfirmado(
             localStorage.removeItem("lanchesk7_etapa");
             localStorage.removeItem("lanchesk7_checkout_estado");
             localStorage.removeItem("lanchesk7_pix_expira_em");
+            localStorage.removeItem("lanchesk7_pix_dados");
 
             atualizarCarrinhoInterface();
             fecharModal();
