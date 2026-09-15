@@ -1,0 +1,1538 @@
+const produtos = document.querySelectorAll(".produto");
+const secoes = document.querySelectorAll(".categoria-secao");
+const botoesCategoria = document.querySelectorAll(".categoria");
+const campoPesquisa = document.getElementById("campoPesquisa");
+
+let categoriaAtual = "todos";
+let pedido = [];
+let produtoAtual = null;
+let quantidadeAtual = 1;
+let formaPagamento = null;
+
+/* =========================
+   FILTRO
+========================= */
+
+function atualizarProdutos() {
+    const pesquisa = campoPesquisa
+        ? campoPesquisa.value.toLowerCase().trim()
+        : "";
+
+    secoes.forEach(secao => {
+        const lista = secao.querySelectorAll(".produto");
+
+        if (!lista.length) return;
+
+        let visiveis = 0;
+
+        lista.forEach(produto => {
+            const categoria =
+                produto.dataset.categoria || "";
+
+            const nome =
+                (produto.dataset.nome || "").toLowerCase();
+
+            const palavras =
+                (produto.dataset.palavras || "").toLowerCase();
+
+            const okCategoria =
+                categoriaAtual === "todos" ||
+                categoria === categoriaAtual;
+
+            const okPesquisa =
+                !pesquisa ||
+                nome.includes(pesquisa) ||
+                palavras.includes(pesquisa);
+
+            const mostrar =
+                okCategoria && okPesquisa;
+
+            produto.style.display =
+                mostrar ? "" : "none";
+
+            if (mostrar) visiveis++;
+        });
+
+        if (categoriaAtual === "todos") {
+            secao.style.display =
+                visiveis ? "" : "none";
+        } else {
+            const categoriaSecao =
+                lista[0]?.dataset.categoria;
+
+            secao.style.display =
+                categoriaSecao === categoriaAtual &&
+                visiveis
+                    ? ""
+                    : "none";
+        }
+    });
+}
+
+botoesCategoria.forEach(botao => {
+    botao.addEventListener("click", () => {
+        botoesCategoria.forEach(b =>
+            b.classList.remove("ativa")
+        );
+
+        botao.classList.add("ativa");
+
+        categoriaAtual =
+            botao.dataset.categoria || "todos";
+
+        atualizarProdutos();
+    });
+});
+
+if (campoPesquisa) {
+    campoPesquisa.addEventListener(
+        "input",
+        atualizarProdutos
+    );
+}
+
+/* =========================
+   PREÇO
+========================= */
+
+function pegarPreco(produto) {
+    const texto =
+        produto.querySelector(
+            ".rodape-produto strong"
+        )?.textContent || "";
+
+    return Number(
+        texto
+            .replace("R$", "")
+            .replace(/\./g, "")
+            .replace(",", ".")
+            .trim()
+    );
+}
+
+function moeda(valor) {
+    return valor
+        .toFixed(2)
+        .replace(".", ",");
+}
+
+/* =========================
+   CARRINHO
+========================= */
+
+function quantidadeTotal() {
+    return pedido.reduce(
+        (total, item) =>
+            total + item.quantidade,
+        0
+    );
+}
+
+function valorTotal() {
+    return pedido.reduce(
+        (total, item) =>
+            total +
+            item.preco *
+            item.quantidade,
+        0
+    );
+}
+
+function encontrarProduto(nome) {
+    return pedido.find(
+        item => item.nome === nome
+    );
+}
+
+/* =========================
+   MODAL
+========================= */
+
+function criarModal() {
+    if (document.getElementById("modalPedido")) return;
+
+    const modal =
+        document.createElement("div");
+
+    modal.id = "modalPedido";
+
+    modal.innerHTML = `
+        <div class="pedido-modal-fundo"></div>
+
+        <div class="pedido-modal">
+
+            <button
+                class="fechar-pedido"
+                aria-label="Fechar">
+                ×
+            </button>
+
+            <div id="conteudoPedido"></div>
+
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal
+        .querySelector(".pedido-modal-fundo")
+        .addEventListener(
+            "click",
+            fecharModal
+        );
+
+    modal
+        .querySelector(".fechar-pedido")
+        .addEventListener(
+            "click",
+            fecharModal
+        );
+}
+
+function abrirModal() {
+    criarModal();
+
+    document
+        .getElementById("modalPedido")
+        .classList.add("aberto");
+
+    document.body.style.overflow =
+        "hidden";
+}
+
+function fecharModal() {
+    const modal =
+        document.getElementById(
+            "modalPedido"
+        );
+
+    if (!modal) return;
+
+    modal.classList.remove("aberto");
+
+    document.body.style.overflow =
+        "";
+}
+
+/* =========================
+   PRODUTO
+========================= */
+
+function abrirProduto(produto) {
+    produtoAtual = produto;
+    quantidadeAtual = 1;
+
+    renderizarProduto();
+}
+
+function renderizarProduto() {
+    abrirModal();
+
+    const nome =
+        produtoAtual.dataset.nome;
+
+    const preco =
+        pegarPreco(produtoAtual);
+
+    const conteudo =
+        document.getElementById(
+            "conteudoPedido"
+        );
+
+    conteudo.innerHTML = `
+        <div class="pedido-cabecalho">
+
+            <span class="pedido-icone">
+                🍔
+            </span>
+
+            <div>
+                <h2>${nome}</h2>
+
+                <strong>
+                    R$ ${moeda(preco)}
+                </strong>
+            </div>
+
+        </div>
+
+        <div class="pedido-secao">
+
+            <h3>Quantidade</h3>
+
+            <div class="quantidade-grande">
+
+                <button id="menosProduto">
+                    −
+                </button>
+
+                <span id="quantidadeProduto">
+                    ${quantidadeAtual}
+                </span>
+
+                <button id="maisProduto">
+                    +
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="total-pedido">
+
+            <span>Total</span>
+
+            <strong id="totalProduto">
+                R$ ${moeda(preco)}
+            </strong>
+
+        </div>
+
+        <div class="pedido-acoes">
+
+            <button
+                class="botao-principal"
+                id="adicionarCarrinho">
+                ADICIONAR AO CARRINHO
+            </button>
+
+            <button
+                class="botao-secundario"
+                id="cancelarProduto">
+                CANCELAR
+            </button>
+
+        </div>
+    `;
+
+    document
+        .getElementById("menosProduto")
+        .addEventListener("click", () => {
+
+            if (quantidadeAtual > 1) {
+                quantidadeAtual--;
+                atualizarProdutoQuantidade();
+            }
+        });
+
+    document
+        .getElementById("maisProduto")
+        .addEventListener("click", () => {
+
+            quantidadeAtual++;
+            atualizarProdutoQuantidade();
+        });
+
+    document
+        .getElementById("adicionarCarrinho")
+        .addEventListener(
+            "click",
+            adicionarAoCarrinho
+        );
+
+    document
+        .getElementById("cancelarProduto")
+        .addEventListener(
+            "click",
+            fecharModal
+        );
+}
+
+function atualizarProdutoQuantidade() {
+    const quantidade =
+        document.getElementById(
+            "quantidadeProduto"
+        );
+
+    const total =
+        document.getElementById(
+            "totalProduto"
+        );
+
+    const preco =
+        pegarPreco(produtoAtual);
+
+    quantidade.textContent =
+        quantidadeAtual;
+
+    total.textContent =
+        "R$ " +
+        moeda(
+            preco * quantidadeAtual
+        );
+}
+
+/* =========================
+   ADICIONAR
+========================= */
+
+function adicionarAoCarrinho() {
+    if (!produtoAtual) return;
+
+    const nome =
+        produtoAtual.dataset.nome;
+
+    const preco =
+        pegarPreco(produtoAtual);
+
+    const existente =
+        encontrarProduto(nome);
+
+    if (existente) {
+        existente.quantidade +=
+            quantidadeAtual;
+    } else {
+        pedido.push({
+            nome,
+            preco,
+            quantidade:
+                quantidadeAtual
+        });
+    }
+
+    fecharModal();
+
+    atualizarCarrinhoInterface();
+}
+
+/* =========================
+   CONTADOR DO CARRINHO
+========================= */
+
+function atualizarCarrinhoInterface() {
+
+    const quantidade =
+        quantidadeTotal();
+
+    document
+        .querySelectorAll("button")
+        .forEach(botao => {
+
+            const texto =
+                (
+                    botao.dataset
+                        .carrinhoBotao ||
+                    botao.textContent
+                )
+                    .trim()
+                    .toLowerCase();
+
+            if (
+                texto.includes(
+                    "ver pedido"
+                ) ||
+                texto.includes(
+                    "carrinho"
+                )
+            ) {
+
+                if (
+                    !botao.dataset
+                        .carrinhoBotao
+                ) {
+                    botao.dataset
+                        .carrinhoBotao =
+                        botao.textContent
+                            .trim();
+                }
+
+                const original =
+                    botao.dataset
+                        .carrinhoBotao;
+
+                botao.textContent =
+                    quantidade > 0
+                        ? `${original} (${quantidade})`
+                        : original;
+            }
+        });
+}
+
+/* =========================
+   CARRINHO
+========================= */
+
+function mostrarCarrinho() {
+
+    abrirModal();
+
+    const conteudo =
+        document.getElementById(
+            "conteudoPedido"
+        );
+
+    if (!pedido.length) {
+
+        mostrarPedidoVazio();
+
+        return;
+    }
+
+    conteudo.innerHTML = `
+        <div class="pedido-cabecalho">
+
+            <div>
+                <h2>Seu pedido</h2>
+
+                <p>
+                    ${quantidadeTotal()}
+                    ${
+                        quantidadeTotal() === 1
+                            ? " item"
+                            : " itens"
+                    }
+                    no carrinho
+                </p>
+            </div>
+
+        </div>
+
+        <div class="lista-pedido">
+
+            ${pedido.map(
+                (item, index) => `
+                    <div
+                        class="item-pedido">
+
+                        <div
+                            class="item-pedido-topo">
+
+                            <strong>
+                                ${item.nome}
+                            </strong>
+
+                            <strong>
+                                R$
+                                ${moeda(
+                                    item.preco *
+                                    item.quantidade
+                                )}
+                            </strong>
+
+                        </div>
+
+                        <div
+                            class="item-pedido-detalhes">
+
+                            <button
+                                class="mini-quantidade"
+                                data-acao="menos"
+                                data-index="${index}">
+                                −
+                            </button>
+
+                            <strong>
+                                ${item.quantidade}
+                            </strong>
+
+                            <button
+                                class="mini-quantidade"
+                                data-acao="mais"
+                                data-index="${index}">
+                                +
+                            </button>
+
+                            <span>
+                                × R$
+                                ${moeda(
+                                    item.preco
+                                )}
+                            </span>
+
+                        </div>
+
+                        <button
+                            class="cancelar-item"
+                            data-index="${index}">
+                            🗑️ CANCELAR PRODUTO
+                        </button>
+
+                    </div>
+                `
+            ).join("")}
+
+        </div>
+
+        <div class="total-pedido">
+
+            <span>
+                ${quantidadeTotal()}
+                ${
+                    quantidadeTotal() === 1
+                        ? " item"
+                        : " itens"
+                }
+            </span>
+
+            <strong>
+                R$ ${moeda(valorTotal())}
+            </strong>
+
+        </div>
+
+        <div class="pedido-acoes">
+
+            <button
+                class="botao-secundario"
+                id="continuarComprando">
+                ＋ ADICIONAR MAIS PRODUTOS
+            </button>
+
+            <button
+                class="botao-finalizar"
+                id="finalizarPedido">
+                FINALIZAR PEDIDO
+            </button>
+
+        </div>
+    `;
+
+    document
+        .querySelectorAll(".mini-quantidade")
+        .forEach(botao => {
+
+            botao.addEventListener(
+                "click",
+                () => {
+
+                    const index =
+                        Number(
+                            botao.dataset.index
+                        );
+
+                    const item =
+                        pedido[index];
+
+                    if (
+                        botao.dataset.acao ===
+                        "mais"
+                    ) {
+                        item.quantidade++;
+                    }
+
+                    if (
+                        botao.dataset.acao ===
+                        "menos" &&
+                        item.quantidade > 1
+                    ) {
+                        item.quantidade--;
+                    }
+
+                    atualizarCarrinhoInterface();
+
+                    mostrarCarrinho();
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(".cancelar-item")
+        .forEach(botao => {
+
+            botao.addEventListener(
+                "click",
+                () => {
+
+                    const index =
+                        Number(
+                            botao.dataset.index
+                        );
+
+                    pedido.splice(
+                        index,
+                        1
+                    );
+
+                    atualizarCarrinhoInterface();
+
+                    mostrarCarrinho();
+                }
+            );
+        });
+
+    document
+        .getElementById(
+            "continuarComprando"
+        )
+        .addEventListener(
+            "click",
+            fecharModal
+        );
+
+    document
+        .getElementById(
+            "finalizarPedido"
+        )
+        .addEventListener(
+            "click",
+            abrirFinalizacao
+        );
+}
+
+/* =========================
+   FINALIZAÇÃO
+========================= */
+
+function abrirFinalizacao() {
+
+    abrirModal();
+
+    const conteudo =
+        document.getElementById(
+            "conteudoPedido"
+        );
+
+    formaPagamento = null;
+
+    conteudo.innerHTML = `
+        <div class="pedido-cabecalho">
+
+            <div>
+                <h2>
+                    Finalizar pedido
+                </h2>
+
+                <p>
+                    ${quantidadeTotal()}
+                    ${
+                        quantidadeTotal() === 1
+                            ? " item"
+                            : " itens"
+                    }
+                    · R$
+                    ${moeda(valorTotal())}
+                </p>
+            </div>
+
+        </div>
+
+        <div class="finalizacao-secao">
+
+            <h3>
+                Observação
+                <small>
+                    (opcional)
+                </small>
+            </h3>
+
+            <textarea
+                id="observacaoPedido"
+                class="observacao-pedido"
+                placeholder="Ex.: sem cebola, pouco molho..."
+                rows="4"></textarea>
+
+        </div>
+
+        <div class="finalizacao-secao">
+
+            <h3>
+                Como deseja receber?
+            </h3>
+
+            <label class="opcao-final">
+
+                <input
+                    type="radio"
+                    name="recebimento"
+                    value="Retirar no estabelecimento">
+
+                <span>🏠</span>
+
+                <div>
+                    <strong>
+                        Retirar no estabelecimento
+                    </strong>
+
+                    <small>
+                        Vou buscar meu pedido.
+                    </small>
+                </div>
+
+            </label>
+
+            <label class="opcao-final">
+
+                <input
+                    type="radio"
+                    name="recebimento"
+                    value="Entrega">
+
+                <span>🛵</span>
+
+                <div>
+                    <strong>
+                        Entrega
+                    </strong>
+
+                    <small>
+                        Receber no endereço.
+                    </small>
+                </div>
+
+            </label>
+
+        </div>
+
+        <div class="finalizacao-secao">
+
+            <h3>
+                Forma de pagamento
+            </h3>
+
+            <div
+                class="pagamento-opcoes">
+
+                <button
+                    type="button"
+                    class="pagamento-card"
+                    data-pagamento="PIX">
+
+                    <span
+                        class="pagamento-imagem pix-logo">
+                        PIX
+                    </span>
+
+                    <div>
+                        <strong>
+                            PIX
+                        </strong>
+
+                        <small>
+                            Pague com QR Code
+                            ou chave PIX
+                        </small>
+                    </div>
+
+                </button>
+
+                <button
+                    type="button"
+                    class="pagamento-card"
+                    data-pagamento="Cartão">
+
+                    <span
+                        class="pagamento-imagem cartao-logo">
+                        💳
+                    </span>
+
+                    <div>
+                        <strong>
+                            Cartão
+                        </strong>
+
+                        <small>
+                            Pagamento seguro
+                        </small>
+                    </div>
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <div
+            id="resumoPagamento"
+            class="area-pagamento">
+        </div>
+
+        <div class="total-pedido">
+
+            <span>
+                Total
+            </span>
+
+            <strong>
+                R$ ${moeda(valorTotal())}
+            </strong>
+
+        </div>
+
+        <button
+            class="botao-finalizar"
+            id="confirmarFormaPagamento">
+            CONFIRMAR PEDIDO
+        </button>
+    `;
+
+    document
+        .querySelectorAll(
+            ".pagamento-card"
+        )
+        .forEach(botao => {
+
+            botao.addEventListener(
+                "click",
+                () => {
+
+                    document
+                        .querySelectorAll(
+                            ".pagamento-card"
+                        )
+                        .forEach(b =>
+                            b.classList.remove(
+                                "selecionado"
+                            )
+                        );
+
+                    botao.classList.add(
+                        "selecionado"
+                    );
+
+                    formaPagamento =
+                        botao.dataset
+                            .pagamento;
+
+                    mostrarTelaPagamento();
+                }
+            );
+        });
+
+    document
+        .getElementById(
+            "confirmarFormaPagamento"
+        )
+        .addEventListener(
+            "click",
+            confirmarFormaPagamento
+        );
+}
+
+/* =========================
+   TELA DE PAGAMENTO
+========================= */
+
+function mostrarTelaPagamento() {
+
+    const area =
+        document.getElementById(
+            "resumoPagamento"
+        );
+
+    if (!area) return;
+
+    if (
+        formaPagamento === "PIX"
+    ) {
+
+        area.innerHTML = `
+            <div
+                class="pagamento-detalhes">
+
+                <h3>
+                    Pagamento via PIX
+                </h3>
+
+                <p>
+                    Valor:
+                    <strong>
+                        R$ ${moeda(valorTotal())}
+                    </strong>
+                </p>
+
+                <div
+                    class="qr-placeholder">
+
+                    <div>
+                        QR CODE
+                    </div>
+
+                </div>
+
+                <p
+                    class="chave-pix-titulo">
+                    Chave PIX
+                </p>
+
+                <div
+                    class="chave-pix">
+                    10755834380
+                </div>
+
+                <small
+                    class="aviso-pagamento">
+                    QR Code de teste.
+                    A chave acima é a
+                    chave PIX informada
+                    para este teste.
+                </small>
+
+            </div>
+        `;
+
+    } else if (
+        formaPagamento === "Cartão"
+    ) {
+
+        area.innerHTML = `
+            <div
+                class="pagamento-detalhes">
+
+                <h3>
+                    Pagamento com cartão
+                </h3>
+
+                <p
+                    class="aviso-pagamento">
+
+                    O pagamento real com
+                    cartão deverá ser feito
+                    através de um checkout
+                    seguro.
+
+                </p>
+
+                <button
+                    type="button"
+                    class="botao-principal"
+                    id="abrirCheckoutCartao">
+
+                    IR PARA PAGAMENTO
+
+                </button>
+
+            </div>
+        `;
+
+        document
+            .getElementById(
+                "abrirCheckoutCartao"
+            )
+            .addEventListener(
+                "click",
+                () => {
+
+                    alert(
+                        "O checkout seguro do cartão será conectado na próxima etapa."
+                    );
+                }
+            );
+    }
+}
+
+/* =========================
+   CONFIRMAR FORMA
+========================= */
+
+function confirmarFormaPagamento() {
+
+    const recebimento =
+        document.querySelector(
+            'input[name="recebimento"]:checked'
+        );
+
+    if (!recebimento) {
+
+        alert(
+            "Escolha entre retirada ou entrega."
+        );
+
+        return;
+    }
+
+    if (!formaPagamento) {
+
+        alert(
+            "Escolha uma forma de pagamento."
+        );
+
+        return;
+    }
+
+    abrirTelaPagamento(
+        recebimento.value
+    );
+}
+
+/* =========================
+   PAGAMENTO
+========================= */
+
+function abrirTelaPagamento(
+    recebimento
+) {
+
+    abrirModal();
+
+    const conteudo =
+        document.getElementById(
+            "conteudoPedido"
+        );
+
+    conteudo.innerHTML = `
+        <div
+            class="confirmacao-pedido">
+
+            <h2>
+                ${formaPagamento === "PIX"
+                    ? "Pagar com PIX"
+                    : "Pagar com cartão"}
+            </h2>
+
+            <p>
+                Pedido:
+                <strong>
+                    ${quantidadeTotal()}
+                    ${
+                        quantidadeTotal() === 1
+                            ? " item"
+                            : " itens"
+                    }
+                </strong>
+            </p>
+
+            <div
+                class="codigo-pedido">
+
+                R$
+                ${moeda(valorTotal())}
+
+            </div>
+
+            ${
+                formaPagamento === "PIX"
+                    ? `
+                        <div
+                            class="pagamento-detalhes">
+
+                            <div
+                                class="qr-placeholder">
+                                <div>
+                                    QR CODE
+                                </div>
+                            </div>
+
+                            <p>
+                                Chave PIX
+                            </p>
+
+                            <div
+                                class="chave-pix">
+                                10755834380
+                            </div>
+
+                        </div>
+                      `
+                    : `
+                        <div
+                            class="pagamento-detalhes">
+
+                            <p>
+                                O pagamento com
+                                cartão será aberto
+                                em checkout seguro.
+                            </p>
+
+                            <button
+                                class="botao-principal"
+                                id="checkoutSeguro">
+
+                                PAGAR COM CARTÃO
+
+                            </button>
+
+                        </div>
+                      `
+            }
+
+            <button
+                class="botao-finalizar"
+                id="pagamentoRealizado">
+
+                JÁ PAGUEI
+
+            </button>
+
+            <small
+                class="texto-codigo">
+
+                O código do pedido só será
+                liberado após a confirmação
+                real do pagamento.
+
+            </small>
+
+        </div>
+    `;
+
+    if (
+        formaPagamento ===
+        "Cartão"
+    ) {
+
+        document
+            .getElementById(
+                "checkoutSeguro"
+            )
+            .addEventListener(
+                "click",
+                () => {
+
+                    alert(
+                        "Aqui será conectado o checkout seguro do gateway."
+                    );
+                }
+            );
+    }
+
+    document
+        .getElementById(
+            "pagamentoRealizado"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                /*
+                 * TESTE LOCAL:
+                 * nesta etapa simulamos a
+                 * confirmação.
+                 *
+                 * Em produção esta função
+                 * deverá ser chamada somente
+                 * pelo backend após o gateway
+                 * confirmar o pagamento.
+                 */
+
+                confirmarPagamentoTeste(
+                    recebimento
+                );
+            }
+        );
+}
+
+/* =========================
+   CONFIRMAÇÃO DE PAGAMENTO
+========================= */
+
+function confirmarPagamentoTeste(
+    recebimento
+) {
+
+    const codigo =
+        gerarCodigoPedido();
+
+    const observacao =
+        document
+            .getElementById(
+                "observacaoPedido"
+            )?.value || "";
+
+    mostrarPagamentoConfirmado(
+        codigo,
+        recebimento,
+        observacao
+    );
+}
+
+/* =========================
+   CÓDIGO
+========================= */
+
+function gerarCodigoPedido() {
+
+    const caracteres =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    let codigo = "L7K-";
+
+    for (
+        let i = 0;
+        i < 6;
+        i++
+    ) {
+
+        codigo +=
+            caracteres.charAt(
+                Math.floor(
+                    Math.random() *
+                    caracteres.length
+                )
+            );
+    }
+
+    return codigo;
+}
+
+/* =========================
+   PAGAMENTO CONFIRMADO
+========================= */
+
+function mostrarPagamentoConfirmado(
+    codigo,
+    recebimento,
+    observacao
+) {
+
+    abrirModal();
+
+    const conteudo =
+        document.getElementById(
+            "conteudoPedido"
+        );
+
+    conteudo.innerHTML = `
+        <div
+            class="confirmacao-pedido">
+
+            <div
+                class="confirmacao-icone">
+                ✓
+            </div>
+
+            <h2>
+                Pagamento confirmado!
+            </h2>
+
+            <p>
+                Seu pedido foi registrado.
+            </p>
+
+            <div
+                class="codigo-pedido">
+
+                ${codigo}
+
+            </div>
+
+            <div
+                class="resumo-confirmacao">
+
+                <p>
+                    <strong>
+                        Itens:
+                    </strong>
+
+                    ${quantidadeTotal()}
+                </p>
+
+                <p>
+                    <strong>
+                        Total:
+                    </strong>
+
+                    R$
+                    ${moeda(valorTotal())}
+                </p>
+
+                <p>
+                    <strong>
+                        Recebimento:
+                    </strong>
+
+                    ${recebimento}
+                </p>
+
+                <p>
+                    <strong>
+                        Pagamento:
+                    </strong>
+
+                    ${formaPagamento}
+                </p>
+
+                ${
+                    observacao
+                        ? `
+                            <p>
+                                <strong>
+                                    Observação:
+                                </strong>
+
+                                ${observacao}
+                            </p>
+                          `
+                        : ""
+                }
+
+            </div>
+
+            <p
+                class="texto-codigo">
+
+                Guarde este código para
+                retirar ou acompanhar
+                seu pedido.
+
+            </p>
+
+            <button
+                class="botao-finalizar"
+                id="concluirPedido">
+
+                CONCLUIR
+
+            </button>
+
+        </div>
+    `;
+
+    document
+        .getElementById(
+            "concluirPedido"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                pedido = [];
+
+                formaPagamento = null;
+
+                atualizarCarrinhoInterface();
+
+                fecharModal();
+            }
+        );
+}
+
+/* =========================
+   CÓDIGO ALEATÓRIO
+========================= */
+
+function gerarCodigoPedido() {
+
+    const caracteres =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    let codigo = "L7K-";
+
+    for (
+        let i = 0;
+        i < 6;
+        i++
+    ) {
+
+        codigo +=
+            caracteres.charAt(
+                Math.floor(
+                    Math.random() *
+                    caracteres.length
+                )
+            );
+    }
+
+    return codigo;
+}
+
+/* =========================
+   VAZIO
+========================= */
+
+function mostrarPedidoVazio() {
+
+    const conteudo =
+        document.getElementById(
+            "conteudoPedido"
+        );
+
+    conteudo.innerHTML = `
+        <div
+            class="pedido-vazio">
+
+            <span>
+                🛒
+            </span>
+
+            <h2>
+                Seu pedido está vazio
+            </h2>
+
+            <p>
+                Escolha um produto
+                para começar.
+            </p>
+
+            <button
+                class="botao-finalizar"
+                id="escolherProdutos">
+
+                ESCOLHER PRODUTOS
+
+            </button>
+
+        </div>
+    `;
+
+    document
+        .getElementById(
+            "escolherProdutos"
+        )
+        .addEventListener(
+            "click",
+            fecharModal
+        );
+}
+
+/* =========================
+   BOTÕES PRODUTOS
+========================= */
+
+produtos.forEach(produto => {
+
+    const botao =
+        produto.querySelector(
+            ".adicionar"
+        );
+
+    if (!botao) return;
+
+    botao.textContent =
+        "FAZER PEDIDO";
+
+    botao.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            abrirProduto(produto);
+        }
+    );
+});
+
+/* =========================
+   VER PEDIDO
+========================= */
+
+document
+    .querySelectorAll("button")
+    .forEach(botao => {
+
+        const texto =
+            botao.textContent
+                .trim()
+                .toLowerCase();
+
+        if (
+            texto.includes(
+                "ver pedido"
+            )
+        ) {
+
+            botao.dataset
+                .carrinhoBotao =
+                botao.textContent.trim();
+
+            botao.addEventListener(
+                "click",
+                event => {
+
+                    event.preventDefault();
+
+                    mostrarCarrinho();
+                }
+            );
+        }
+    });
+
+/* =========================
+   INICIALIZAÇÃO
+========================= */
+
+criarModal();
+
+atualizarProdutos();
+
+atualizarCarrinhoInterface();

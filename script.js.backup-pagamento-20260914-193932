@@ -846,85 +846,13 @@ function confirmarFormaPagamento() {
     abrirTelaPagamento(recebimentoAtual);
 }
 
-function crc16Pix(payload) {
-    let crc = 0xFFFF;
-
-    for (let i = 0; i < payload.length; i++) {
-        crc ^= payload.charCodeAt(i) << 8;
-
-        for (let j = 0; j < 8; j++) {
-            if (crc & 0x8000) {
-                crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
-            } else {
-                crc = (crc << 1) & 0xFFFF;
-            }
-        }
-    }
-
-    return crc.toString(16).toUpperCase().padStart(4, "0");
-}
-
-function campoPix(id, valor) {
-    return String(id).padStart(2, "0") +
-           String(valor.length).padStart(2, "0") +
-           valor;
-}
-
-function gerarPayloadPix(valor) {
-    const chavePix = "37fb303c-f7fd-471d-9c79-75eed080c307";
-
-    const nome = "RENAN SILVA DO NASCIMENTO"
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .substring(0, 25)
-        .toUpperCase();
-
-    const cidade = "CARNAUBAIS"
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .substring(0, 15)
-        .toUpperCase();
-
-    const valorPix = Number(valor).toFixed(2);
-
-    const merchantAccount =
-        campoPix(0, "BR.GOV.BCB.PIX") +
-        campoPix(1, chavePix);
-
-    let payload =
-        campoPix(0, "01") +
-        campoPix(26, merchantAccount) +
-        campoPix(52, "0000") +
-        campoPix(53, "986") +
-        campoPix(54, valorPix) +
-        campoPix(58, "BR") +
-        campoPix(59, nome) +
-        campoPix(60, cidade) +
-        campoPix(62, campoPix(05, "***"));
-
-    payload += "6304";
-
-    return payload + crc16Pix(payload);
-}
-
 function abrirTelaPagamento(recebimento) {
     abrirModal();
 
-    const conteudo = document.getElementById("conteudoPedido");
-    const total = Number(valorTotal());
+    const conteudo =
+        document.getElementById("conteudoPedido");
 
-    const chavePix =
-        "37fb303c-f7fd-471d-9c79-75eed080c307";
-
-    const payloadPix =
-        formaPagamento === "PIX"
-            ? gerarPayloadPix(total)
-            : "";
-
-    const qrPix =
-        formaPagamento === "PIX"
-            ? `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(payloadPix)}`
-            : "";
+    const total = valorTotal();
 
     conteudo.innerHTML = `
         <div class="pagamento-app">
@@ -936,13 +864,15 @@ function abrirTelaPagamento(recebimento) {
             </span>
 
             <h2>
-                ${formaPagamento === "PIX"
-                    ? "Pague pelo PIX"
-                    : "Pagamento com cartão"}
+                ${
+                    formaPagamento === "PIX"
+                        ? "Pague pelo PIX"
+                        : "Pagamento com cartão"
+                }
             </h2>
 
             <div class="pagamento-valor-app">
-                <span>Valor exato do pedido</span>
+                <span>Valor do pedido</span>
                 <strong>R$ ${moeda(total)}</strong>
             </div>
 
@@ -953,8 +883,8 @@ function abrirTelaPagamento(recebimento) {
 
                             <div class="pix-qr-app">
                                 <img
-                                    src="${qrPix}"
-                                    alt="QR Code PIX no valor de R$ ${moeda(total)}">
+                                    src="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=37fb303c-f7fd-471d-9c79-75eed080c307"
+                                    alt="QR Code PIX">
                             </div>
 
                             <div class="pix-chave-app">
@@ -963,27 +893,7 @@ function abrirTelaPagamento(recebimento) {
 
                                 <div>
                                     <code id="chavePixPagamento">
-                                        ${chavePix}
-                                    </code>
-
-                                    <button
-                                        type="button"
-                                        id="copiarChavePix">
-                                        COPIAR
-                                    </button>
-                                </div>
-
-                            </div>
-
-                            <div class="pix-chave-app">
-
-                                <span>PIX COPIA E COLA — R$ ${moeda(total)}</span>
-
-                                <div>
-                                    <code
-                                        id="codigoPixPagamento"
-                                        style="word-break:break-all;">
-                                        ${payloadPix}
+                                        37fb303c-f7fd-471d-9c79-75eed080c307
                                     </code>
 
                                     <button
@@ -996,16 +906,21 @@ function abrirTelaPagamento(recebimento) {
                             </div>
 
                             <div class="pix-contador-app">
-                                <small>TEMPO PARA PAGAMENTO</small>
-                                <strong id="pixTimer">05:00</strong>
+
+                                <small>
+                                    TEMPO PARA PAGAMENTO
+                                </small>
+
+                                <strong id="pixTimer">
+                                    05:00
+                                </strong>
+
                             </div>
 
                             <p class="pix-aviso-app">
-                                O QR Code e o Pix Copia e Cola foram
-                                gerados para o valor exato de
-                                R$ ${moeda(total)}.
-                                Confira o valor e o recebedor no aplicativo
-                                do seu banco antes de confirmar.
+                                O pedido ainda não foi comprado.
+                                Ele só será confirmado após a
+                                confirmação real do pagamento.
                             </p>
 
                         </div>
@@ -1013,13 +928,18 @@ function abrirTelaPagamento(recebimento) {
                     : `
                         <div class="cartao-app">
 
-                            <div class="cartao-icone">💳</div>
+                            <div class="cartao-icone">
+                                💳
+                            </div>
 
-                            <h3>Pagamento seguro</h3>
+                            <h3>
+                                Pagamento seguro
+                            </h3>
 
                             <p>
-                                O pagamento com cartão será realizado
-                                por um checkout seguro do provedor.
+                                O pagamento com cartão será
+                                realizado pelo checkout seguro
+                                do provedor.
                             </p>
 
                             <button
@@ -1043,55 +963,105 @@ function abrirTelaPagamento(recebimento) {
         </div>
     `;
 
-    const copiarChave = document.getElementById("copiarChavePix");
+    document
+        .getElementById("voltarCheckout")
+        .addEventListener(
+            "click",
+            abrirFinalizacao
+        );
 
-    if (copiarChave) {
-        copiarChave.addEventListener("click", async () => {
+    const copiar =
+        document.getElementById("copiarPix");
+
+    if (copiar) {
+        copiar.addEventListener("click", async () => {
+
+            const chave =
+                document
+                    .getElementById("chavePixPagamento")
+                    .textContent
+                    .trim();
+
             try {
-                await navigator.clipboard.writeText(chavePix);
+                await navigator.clipboard.writeText(chave);
 
-                copiarChave.textContent = "COPIADO!";
+                copiar.textContent = "COPIADO ✓";
 
                 setTimeout(() => {
-                    copiarChave.textContent = "COPIAR";
-                }, 1500);
+                    copiar.textContent = "COPIAR";
+                }, 1800);
 
             } catch {
-                alert("Não foi possível copiar a chave PIX.");
+                alert("Não foi possível copiar automaticamente.");
             }
         });
     }
 
-    const copiarPix = document.getElementById("copiarPix");
+    const checkoutSeguro =
+        document.getElementById("checkoutSeguro");
 
-    if (copiarPix) {
-        copiarPix.addEventListener("click", async () => {
-            try {
-                await navigator.clipboard.writeText(payloadPix);
-
-                copiarPix.textContent = "COPIADO!";
-
-                setTimeout(() => {
-                    copiarPix.textContent = "COPIAR";
-                }, 1500);
-
-            } catch {
-                alert("Não foi possível copiar o Pix Copia e Cola.");
-            }
-        });
-    }
-
-    const voltarCheckout = document.getElementById("voltarCheckout");
-
-    if (voltarCheckout) {
-        voltarCheckout.addEventListener("click", () => {
-            abrirFinalizacao();
+    if (checkoutSeguro) {
+        checkoutSeguro.addEventListener("click", () => {
+            alert(
+                "O checkout seguro do cartão será conectado ao gateway de pagamento."
+            );
         });
     }
 
     if (formaPagamento === "PIX") {
         iniciarTimerPix();
     }
+}
+
+
+let timerPixInterval = null;
+
+function iniciarTimerPix() {
+    if (timerPixInterval) {
+        clearInterval(timerPixInterval);
+    }
+
+    let segundos = 300;
+
+    const elemento =
+        document.getElementById("pixTimer");
+
+    if (!elemento) return;
+
+    function atualizar() {
+        const minutos =
+            Math.floor(segundos / 60);
+
+        const resto =
+            segundos % 60;
+
+        elemento.textContent =
+            `${String(minutos).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
+
+        if (segundos <= 0) {
+            clearInterval(timerPixInterval);
+            timerPixInterval = null;
+
+            elemento.textContent = "00:00";
+
+            const aviso =
+                document.querySelector(".pix-aviso-app");
+
+            if (aviso) {
+                aviso.textContent =
+                    "Tempo encerrado. O pagamento não foi confirmado. Seus produtos continuam no carrinho.";
+            }
+
+            return;
+        }
+
+        segundos--;
+    }
+
+    atualizar();
+
+    timerPixInterval =
+        setInterval(atualizar, 1000);
 }
 
 
